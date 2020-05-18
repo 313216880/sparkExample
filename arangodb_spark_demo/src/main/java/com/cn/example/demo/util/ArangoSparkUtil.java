@@ -15,22 +15,23 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import com.arangodb.Protocol;
 import com.arangodb.spark.ArangoSpark;
 import com.arangodb.spark.ReadOptions;
 import com.arangodb.spark.WriteOptions;
 import com.arangodb.spark.rdd.api.java.ArangoJavaRDD;
 
 import lombok.extern.slf4j.Slf4j;
-//@Component
+@Component
 @Slf4j
 public class ArangoSparkUtil {
-
-	@Value("${arangodb.database}")
-	private String arangodbDatabase = "_system";
+	
+	@Autowired
+	ReadOptions readOptions;
+	
+	@Autowired
+	WriteOptions writeOptions;
 	
 	@Autowired
 	private static JavaSparkContext sc;
@@ -80,9 +81,7 @@ public class ArangoSparkUtil {
 			long count = 0;
 			for (int i = 0; i < queryCollections.length; i++) {
 				start = System.currentTimeMillis();
-				ArangoJavaRDD<?> rdd = ArangoSpark.load(sc, queryCollections[i],
-						new ReadOptions().hosts("10.200.1.183:8529").database(arangodbDatabase)
-						.protocol(Protocol.HTTP_JSON), querycollectionClass[i]);
+				ArangoJavaRDD<?> rdd = ArangoSpark.load(sc, queryCollections[i],readOptions, querycollectionClass[i]);
 				end = System.currentTimeMillis();
 				Dataset<Row> dataset = spark.createDataFrame(rdd, querycollectionClass[i]);
 				dataset.createOrReplaceTempView(writeCollection);// 创建spark临时表
@@ -105,8 +104,7 @@ public class ArangoSparkUtil {
 			
 			//spark写入arangodb数据
 			start = System.currentTimeMillis();
-			ArangoSpark.save(documents, writeCollection, new WriteOptions().hosts("10.200.1.183:8529").
-					database(arangodbDatabase).protocol(Protocol.HTTP_JSON));
+			ArangoSpark.save(documents, writeCollection, writeOptions);
 			end = System.currentTimeMillis();
 			log.info("☆☆☆ spark写入arangodb数据 ☆☆☆  collection:{} **** 数据量: {} **** takeTime: {}毫秒", 
 					writeCollection, documents.count(), (end - start));
@@ -132,8 +130,7 @@ public class ArangoSparkUtil {
 		try {
 			//spark读取arangodb数据
 			long start = System.currentTimeMillis();
-			ArangoJavaRDD<?> rdd = ArangoSpark.load(sc, queryCollection,
-					new ReadOptions().hosts("10.200.1.183:8529").database(arangodbDatabase).protocol(Protocol.HTTP_JSON), querycollectionClass);
+			ArangoJavaRDD<?> rdd = ArangoSpark.load(sc, queryCollection,readOptions, querycollectionClass);
 			long end = System.currentTimeMillis();
 			log.info("☆☆☆ spark读取arangodb数据 ☆☆☆  collection:{} **** 数据量: {} **** takeTime: {}毫秒", 
 					queryCollection, rdd.count(), (end - start));
@@ -152,8 +149,7 @@ public class ArangoSparkUtil {
 			
 			//spark写入arangodb数据
 			start = System.currentTimeMillis();
-			ArangoSpark.save(documents, writeCollection, new WriteOptions().hosts("10.200.1.183:8529").
-					database(arangodbDatabase).protocol(Protocol.HTTP_JSON));
+			ArangoSpark.save(documents, writeCollection, writeOptions);
 			end = System.currentTimeMillis();
 			log.info("☆☆☆ spark写入arangodb数据 ☆☆☆  collection:{} **** 数据量: {} **** takeTime: {}毫秒", 
 					writeCollection, documents.count(), (end - start));
@@ -177,10 +173,9 @@ public class ArangoSparkUtil {
 	 */
 	public <T> void loadArangodbToSparkToArangodb(String queryCollection, Class<T> querycollectionClass,
 			String writeCollection) {
-		ArangoJavaRDD<T> rdd = ArangoSpark.load(sc, queryCollection, new ReadOptions().database(arangodbDatabase),
+		ArangoJavaRDD<T> rdd = ArangoSpark.load(sc, queryCollection, readOptions,
 				querycollectionClass);
-		ArangoSpark.save(rdd, writeCollection, new WriteOptions().hosts("10.200.1.183:8529").
-				database(arangodbDatabase).protocol(Protocol.HTTP_JSON));
+		ArangoSpark.save(rdd, writeCollection, writeOptions);
 		destructionJavaSparkContext();
 	}
 
@@ -193,8 +188,7 @@ public class ArangoSparkUtil {
 	 */
 	public <T> void loadArangodbToSpark(String collection, Class<T> collectionClass) {
 		long start = System.currentTimeMillis();
-		ArangoJavaRDD<T> rdd = ArangoSpark.load(sc, collection, new ReadOptions()
-				.hosts("10.200.1.183:8529").database(arangodbDatabase), collectionClass);
+		ArangoJavaRDD<T> rdd = ArangoSpark.load(sc, collection, readOptions, collectionClass);
 		long end = System.currentTimeMillis();
 		log.info("☆☆☆ spark读取arangodb数据 ☆☆☆  collection:{} **** 数据量: {} **** takeTime: {}毫秒", 
 				collection, rdd.count(), (end - start));
@@ -211,8 +205,7 @@ public class ArangoSparkUtil {
 	public <T> void loadSparkToArangodb(String collection, List<T> docs) {
 		long start = System.currentTimeMillis();
 		JavaRDD<T> documents = sc.parallelize(docs);
-		ArangoSpark.save(documents, collection, new WriteOptions().hosts("10.200.1.183:8529")
-				.database(arangodbDatabase).protocol(Protocol.HTTP_JSON));
+		ArangoSpark.save(documents, collection, writeOptions);
 		long end = System.currentTimeMillis();
 		log.info("☆☆☆ spark写入arangodb数据 ☆☆☆  collection:{} **** 数据量: {} **** takeTime: {}毫秒",
 				collection, documents.count(), (end - start));

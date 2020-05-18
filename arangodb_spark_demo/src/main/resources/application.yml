@@ -1,9 +1,11 @@
 #ArangoDB
 arangodb: 
-  hosts: 10.200.1.183:8529
+  hosts: 10.200.1.183:8529,10.200.1.181:8529,10.200.1.184:8529
   user: root
   password: root
   database: _system
+  protocol: HTTP_JSON  #默认VST VST,HTTP_JSON,HTTP_VPACK
+  useSsl: false #使用ssl  默认false
 #spark配置
 spark: 
   master: local #spark://10.200.1.193:7077    local
