@@ -8,7 +8,7 @@ arangodb:
   useSsl: false #使用ssl  默认false
 #spark配置
 spark: 
-  master: local #spark://10.200.1.193:7077    local
+  master: local #spark://10.200.1.193:7077    #local
   appName: SparkTest
   executor.memory: 4g
   scheduler.mode: FAIR

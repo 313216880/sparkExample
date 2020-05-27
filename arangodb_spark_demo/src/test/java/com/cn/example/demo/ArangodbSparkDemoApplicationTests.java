@@ -8,8 +8,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import com.cn.example.demo.entity.Test1;
+import com.cn.example.demo.entity.Test2;
 import com.cn.example.demo.entity.TestJavaEntity;
 import com.cn.example.demo.function.ArangoSparkTest;
+import com.cn.example.demo.util.ArangoSparkUtil;
 
 
 
@@ -19,9 +21,18 @@ public class ArangodbSparkDemoApplicationTests {
 	@Autowired
 	private ArangoSparkTest  arangoSparkTest;
 	
+	@Autowired
+	private ArangoSparkUtil  arangoSparkUtil;
+	
 	@Test
 	public void contextLoads() {
 		
+	}
+	
+//	@Test
+	void arangoSparkUtil() {
+		arangoSparkUtil.loadArangodbToSparkToArangodb(new String[]{"test_col"}, new Class<?>[]{Test1.class,Test2.class},
+				"SELECT * FROM test_col where id == 1", "test_coll", Test1.class);
 	}
 	
 	@Test

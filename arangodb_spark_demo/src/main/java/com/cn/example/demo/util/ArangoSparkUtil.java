@@ -9,6 +9,7 @@ import java.util.List;
 
 import javax.annotation.Nonnull;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.Dataset;
@@ -28,13 +29,13 @@ import lombok.extern.slf4j.Slf4j;
 public class ArangoSparkUtil {
 	
 	@Autowired
-	ReadOptions readOptions;
+	private ReadOptions readOptions;
 	
 	@Autowired
-	WriteOptions writeOptions;
+	private WriteOptions writeOptions;
 	
 	@Autowired
-	private static JavaSparkContext sc;
+	private JavaSparkContext sc;
 	
 	@Autowired
 	private SparkSession spark;
@@ -84,18 +85,19 @@ public class ArangoSparkUtil {
 				ArangoJavaRDD<?> rdd = ArangoSpark.load(sc, queryCollections[i],readOptions, querycollectionClass[i]);
 				end = System.currentTimeMillis();
 				Dataset<Row> dataset = spark.createDataFrame(rdd, querycollectionClass[i]);
-				dataset.createOrReplaceTempView(writeCollection);// 创建spark临时表
+				dataset.createOrReplaceTempView(queryCollections[i]);// 创建spark临时表
 				log.info("☆☆☆ spark读取arangodb数据(多集合) ☆☆☆  collection:{} **** 数据量: {} **** takeTime: {}毫秒", 
 						queryCollections[i], rdd.count(), (end - start));
 				count += rdd.count();
 			}
 			end = System.currentTimeMillis();
 			log.info("☆☆☆ spark读取arangodb数据(多集合) ☆☆☆  collection:{} **** 总数据量: {} **** takeTime: {}毫秒", 
-					queryCollections.toString(), count, (end - start));
+					StringUtils.join(queryCollections, ","), count, (end - start));
 			
 			// 处理spark查询结果 Dataset<Row> 转对象
 			start = System.currentTimeMillis();
 			Dataset<Row> dataset = spark.sql(sqlConditions);
+			dataset.show();
 			List<T> list = SparkDatasetToJavaBean.getStreamToJavaBean(dataset, writeCollectionClass);
 			JavaRDD<T> documents = sc.parallelize(list);
 			end = System.currentTimeMillis();
@@ -109,6 +111,7 @@ public class ArangoSparkUtil {
 			log.info("☆☆☆ spark写入arangodb数据 ☆☆☆  collection:{} **** 数据量: {} **** takeTime: {}毫秒", 
 					writeCollection, documents.count(), (end - start));
 		} catch (Exception e) {
+			e.printStackTrace();
 			log.error("读取arangodb数据到spark，通过spark 关联sql查询结果 再把结果写入arangodb新的集合(多集合) 异常！错误信息：{}", e.getMessage());
 		} finally {
 			destructionSparkSession();
@@ -136,7 +139,7 @@ public class ArangoSparkUtil {
 					queryCollection, rdd.count(), (end - start));
 			
 			Dataset<Row> dataset = spark.createDataFrame(rdd, querycollectionClass);
-			dataset.createOrReplaceTempView(writeCollection);// 创建spark临时表
+			dataset.createOrReplaceTempView(queryCollection);// 创建spark临时表
 			
 			// 处理spark查询结果 Dataset<Row> 转对象
 			start = System.currentTimeMillis();

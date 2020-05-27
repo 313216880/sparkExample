@@ -29,10 +29,10 @@ import lombok.extern.slf4j.Slf4j;
 public class ArangoSparkTest {
 
 	@Autowired
-	ReadOptions readOptions;
+	private ReadOptions readOptions;
 	
 	@Autowired
-	WriteOptions writeOptions;
+	private WriteOptions writeOptions;
 	
 	@Autowired
 	private JavaSparkContext sc;
@@ -73,7 +73,7 @@ public class ArangoSparkTest {
 		ArangoJavaRDD<T> rdd = ArangoSpark.load(sc, queryCollection, readOptions,
 				querycollectionClass);
 		long end = System.currentTimeMillis();
-		log.info("☆☆☆☆☆☆☆ spark读取arangodb数据 ☆☆☆☆☆☆☆  collection:{} **** 数据量: {} **** takeTime: {}毫秒",queryCollection,rdd.count(),(end - start));
+		log.info("☆☆☆☆☆☆☆ spark读取arangodb数据 ☆☆☆☆☆☆☆  collection:{} **** 数据量: {} **** takeTime: {}毫秒",queryCollection,0,(end - start));
 		Dataset<Row> dataset = spark.createDataFrame(rdd, querycollectionClass);
 		dataset.createOrReplaceTempView(writeCollection);
 		dataset = spark.sql("SELECT * FROM " + writeCollection + (StringUtils.isEmpty(sqlConditions) ? "" : " where " + sqlConditions));
